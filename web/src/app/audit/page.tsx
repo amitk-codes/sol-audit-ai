@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { type Contract } from "@/lib/api";
+import { AuditView } from "@/components/audit-view";
 import { ContractInput } from "@/components/contract-input";
 import { ExplainView } from "@/components/explain-view";
 import { Panel } from "@/components/ui/panel";
@@ -55,7 +56,7 @@ export default function AuditPage() {
           </div>
 
           {tab === "explain" && <ExplainView source={contract.combined} />}
-          {tab === "audit" && <Panel className="p-5 text-sm text-faint">// audit — coming next</Panel>}
+          {tab === "audit" && <AuditView source={contract.combined} />}
           {tab === "chat" && <Panel className="p-5 text-sm text-faint">// chat — coming next</Panel>}
         </div>
       )}

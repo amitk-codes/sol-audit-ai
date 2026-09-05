@@ -30,3 +30,17 @@ export type Explanation = {
 export function explainContract(source: string): Promise<Explanation> {
   return post<Explanation>("/explain", { source });
 }
+
+export type Finding = {
+  title: string;
+  severity: string;
+  category: string;
+  location: string;
+  description: string;
+  recommendation: string;
+};
+export type AuditReport = { summary: string; findings: Finding[] };
+
+export function auditContract(source: string): Promise<AuditReport> {
+  return post<AuditReport>("/audit", { source });
+}
