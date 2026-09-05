@@ -21,3 +21,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export function loadContract(input: { source?: string; repo_url?: string }): Promise<Contract> {
   return post<Contract>("/contract/load", input);
 }
+
+export type Explanation = {
+  overview: string;
+  instructions: { name: string; summary: string }[];
+};
+
+export function explainContract(source: string): Promise<Explanation> {
+  return post<Explanation>("/explain", { source });
+}
