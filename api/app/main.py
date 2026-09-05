@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import contract
+from app.routers import contract, explain
 
 app = FastAPI(title="sol-audit-ai API")
 
@@ -15,6 +15,7 @@ app.add_middleware(
 
 
 app.include_router(contract.router)
+app.include_router(explain.router)
 
 
 @app.get("/health")
