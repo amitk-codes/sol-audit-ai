@@ -44,3 +44,13 @@ export type AuditReport = { summary: string; findings: Finding[] };
 export function auditContract(source: string): Promise<AuditReport> {
   return post<AuditReport>("/audit", { source });
 }
+
+export type ChatMessage = { role: "user" | "assistant"; content: string };
+
+export function chatContract(
+  source: string,
+  question: string,
+  history: ChatMessage[],
+): Promise<{ answer: string }> {
+  return post<{ answer: string }>("/chat", { source, question, history });
+}
