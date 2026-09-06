@@ -9,8 +9,6 @@ source or point it at a public GitHub repo, and get:
 - a **severity-ranked vulnerability report** grounded in a Solana-specific checklist,
 - a chat to ask questions about the code.
 
-> AI-assisted review — **not** a certified audit.
-
 ## Tech
 
 | | |
