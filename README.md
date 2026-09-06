@@ -9,6 +9,8 @@ source or point it at a public GitHub repo, and get:
 - a **severity-ranked vulnerability report** grounded in a Solana-specific checklist,
 - a chat to ask questions about the code.
 
+![sol-audit-ai — the audit workspace](docs/demo.gif)
+
 ## Tech
 
 | | |
@@ -27,6 +29,20 @@ Explain and audit run over the whole program (better cross-function context); ch
 ├── web/    # Next.js frontend (terminal UI)
 └── api/    # FastAPI backend
 ```
+
+## Screenshots
+
+The severity-ranked audit report — findings stream in one by one:
+
+![Audit report](docs/audit.png)
+
+The code viewer with the file tree:
+
+![Code viewer](docs/code.png)
+
+The landing — how it works and the Solana vulnerability checklist:
+
+![Landing](docs/landing.png)
 
 ## Getting started
 
