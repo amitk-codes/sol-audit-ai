@@ -1,3 +1,5 @@
+import { FileCode } from "lucide-react";
+
 import { type LoadedFile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +31,7 @@ export function FileTree({
               active ? "bg-panel-2 text-green" : "text-dim hover:text-text",
             )}
           >
-            <span className="text-faint">›</span>
+            <FileCode className="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" />
             <span className="min-w-0">
               <span className="block truncate text-xs">{name}</span>
               {dir && <span className="block truncate text-[10px] text-faint">{dir}</span>}

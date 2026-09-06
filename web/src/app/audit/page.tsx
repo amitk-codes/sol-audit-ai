@@ -19,11 +19,19 @@ export default function AuditPage() {
   const [contract, setContract] = React.useState<Contract | null>(null);
   const [tab, setTab] = React.useState<Tab>("audit");
   const [activePath, setActivePath] = React.useState<string | null>(null);
+  // tabs stay mounted once visited, so switching away and back doesn't re-run the analysis
+  const [visited, setVisited] = React.useState<Set<Tab>>(() => new Set<Tab>(["audit"]));
 
   function onLoaded(loaded: Contract) {
     setContract(loaded);
     setActivePath(loaded.files[0]?.path ?? null);
     setTab("audit");
+    setVisited(new Set<Tab>(["audit"]));
+  }
+
+  function selectTab(name: Tab) {
+    setTab(name);
+    setVisited((prev) => (prev.has(name) ? prev : new Set(prev).add(name)));
   }
 
   if (!contract) {
@@ -66,7 +74,7 @@ export default function AuditPage() {
             {TABS.map((name) => (
               <button
                 key={name}
-                onClick={() => setTab(name)}
+                onClick={() => selectTab(name)}
                 className={cn(
                   "border px-3 py-1.5",
                   tab === name ? "border-green text-green" : "border-border text-dim hover:text-text",
@@ -77,10 +85,26 @@ export default function AuditPage() {
             ))}
           </div>
 
-          {tab === "code" && <CodeViewer file={activeFile} />}
-          {tab === "explain" && <ExplainView source={contract.combined} />}
-          {tab === "audit" && <AuditView source={contract.combined} />}
-          {tab === "chat" && <ChatView source={contract.combined} />}
+          {visited.has("code") && (
+            <div hidden={tab !== "code"}>
+              <CodeViewer file={activeFile} />
+            </div>
+          )}
+          {visited.has("explain") && (
+            <div hidden={tab !== "explain"}>
+              <ExplainView source={contract.combined} />
+            </div>
+          )}
+          {visited.has("audit") && (
+            <div hidden={tab !== "audit"}>
+              <AuditView source={contract.combined} />
+            </div>
+          )}
+          {visited.has("chat") && (
+            <div hidden={tab !== "chat"}>
+              <ChatView source={contract.combined} />
+            </div>
+          )}
         </div>
       </div>
     </div>

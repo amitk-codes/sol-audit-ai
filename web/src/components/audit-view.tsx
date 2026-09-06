@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { AlertTriangle, Download, Info, ShieldAlert } from "lucide-react";
 
 import { auditContract, type AuditReport, type Finding } from "@/lib/api";
 import { Loading } from "@/components/loading";
@@ -22,6 +23,36 @@ function severityColor(severity: string) {
     default:
       return "text-dim border-border";
   }
+}
+
+function severityBar(severity: string) {
+  switch (severity) {
+    case "critical":
+    case "high":
+      return "bg-red";
+    case "medium":
+      return "bg-amber";
+    case "low":
+      return "bg-blue";
+    default:
+      return "bg-faint";
+  }
+}
+
+function SeverityIcon({ severity, className }: { severity: string; className?: string }) {
+  if (severity === "critical" || severity === "high") return <ShieldAlert className={className} />;
+  if (severity === "medium") return <AlertTriangle className={className} />;
+  return <Info className={className} />;
+}
+
+function exportReport(report: AuditReport) {
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "audit-report.json";
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function AuditView({ source }: { source: string }) {
@@ -53,19 +84,45 @@ export function AuditView({ source }: { source: string }) {
   return (
     <div className="space-y-4">
       <Panel className="p-5">
-        <p className="mb-2 text-xs text-faint">// summary</p>
-        <p className="text-sm leading-relaxed">{data.summary}</p>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          {SEVERITY_ORDER.map((severity) => {
-            const count = findings.filter((finding) => finding.severity === severity).length;
-            if (!count) return null;
-            return (
-              <span key={severity} className={cn("border px-2 py-1", severityColor(severity))}>
-                {severity}: {count}
-              </span>
-            );
-          })}
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs text-faint">// summary</p>
+          <button
+            onClick={() => exportReport(data)}
+            className="flex items-center gap-1.5 text-xs text-dim hover:text-green"
+          >
+            <Download className="h-3.5 w-3.5" /> export json
+          </button>
         </div>
+        <p className="text-sm leading-relaxed">{data.summary}</p>
+
+        {findings.length > 0 && (
+          <>
+            <div className="mt-4 flex h-1.5 overflow-hidden">
+              {SEVERITY_ORDER.map((severity) => {
+                const count = findings.filter((f) => f.severity === severity).length;
+                if (!count) return null;
+                return (
+                  <div key={severity} style={{ flex: count }} className={severityBar(severity)} />
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              {SEVERITY_ORDER.map((severity) => {
+                const count = findings.filter((f) => f.severity === severity).length;
+                if (!count) return null;
+                return (
+                  <span
+                    key={severity}
+                    className={cn("flex items-center gap-1 border px-2 py-1", severityColor(severity))}
+                  >
+                    <SeverityIcon severity={severity} className="h-3 w-3" />
+                    {severity}: {count}
+                  </span>
+                );
+              })}
+            </div>
+          </>
+        )}
       </Panel>
 
       {findings.length === 0 ? (
@@ -81,7 +138,13 @@ function FindingCard({ finding }: { finding: Finding }) {
   return (
     <Panel className="p-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-bold">{finding.title}</p>
+        <p className="flex items-center gap-2 text-sm font-bold">
+          <SeverityIcon
+            severity={finding.severity}
+            className={cn("h-4 w-4", severityColor(finding.severity).split(" ")[0])}
+          />
+          {finding.title}
+        </p>
         <span
           className={cn(
             "shrink-0 border px-2 py-0.5 text-xs font-bold uppercase",
