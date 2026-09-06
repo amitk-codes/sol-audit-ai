@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { chatContract, type ChatMessage } from "@/lib/api";
+import { chatStream, type ChatMessage } from "@/lib/api";
 import { Markdown } from "@/components/markdown";
 import { Panel } from "@/components/ui/panel";
 
@@ -16,21 +16,37 @@ export function ChatView({ source }: { source: string }) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  function appendToLast(chunk: string) {
+    setMessages((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      next[next.length - 1] = { ...last, content: last.content + chunk };
+      return next;
+    });
+  }
+
   async function send(event: React.FormEvent) {
     event.preventDefault();
     const question = input.trim();
     if (!question || loading) return;
 
     const history = messages;
-    setMessages([...history, { role: "user", content: question }]);
+    setMessages([
+      ...history,
+      { role: "user", content: question },
+      { role: "assistant", content: "" },
+    ]);
     setInput("");
     setLoading(true);
     try {
-      const { answer } = await chatContract(source, question, history);
-      setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
+      await chatStream(source, question, history, appendToLast);
     } catch (err) {
       const message = err instanceof Error ? err.message : "failed";
-      setMessages((prev) => [...prev, { role: "assistant", content: `! ${message}` }]);
+      setMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = { role: "assistant", content: `! ${message}` };
+        return next;
+      });
     } finally {
       setLoading(false);
     }
@@ -52,14 +68,15 @@ export function ChatView({ source }: { source: string }) {
             </p>
           ) : (
             <div key={index} className="text-dim">
-              <Markdown content={message.content} />
+              {message.content ? (
+                <Markdown content={message.content} />
+              ) : (
+                <span>
+                  thinking<span className="animate-pulse">▍</span>
+                </span>
+              )}
             </div>
           ),
-        )}
-        {loading && (
-          <p className="text-dim">
-            thinking<span className="animate-pulse">▍</span>
-          </p>
         )}
         <div ref={endRef} />
       </div>

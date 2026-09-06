@@ -20,26 +20,33 @@ _SYSTEM = (
 _embed_cache: dict[str, list[tuple[str, list[float]]]] = {}
 
 
-def answer(source: str, question: str, history: list[dict] | None = None) -> dict:
-    context = source if len(source) <= WHOLE_CONTEXT_LIMIT else _retrieve(source, question)
+def answer_stream(source: str, question: str, history: list[dict] | None = None):
+    try:
+        context = source if len(source) <= WHOLE_CONTEXT_LIMIT else _retrieve(source, question)
 
-    turns: list[types.Content] = []
-    for message in history or []:
-        role = "model" if message.get("role") == "assistant" else "user"
-        turns.append(types.Content(role=role, parts=[types.Part(text=message.get("content", ""))]))
-    turns.append(
-        types.Content(
-            role="user",
-            parts=[types.Part(text=f"Code context:\n{context}\n\nQuestion: {question}")],
+        turns: list[types.Content] = []
+        for message in history or []:
+            role = "model" if message.get("role") == "assistant" else "user"
+            turns.append(
+                types.Content(role=role, parts=[types.Part(text=message.get("content", ""))])
+            )
+        turns.append(
+            types.Content(
+                role="user",
+                parts=[types.Part(text=f"Code context:\n{context}\n\nQuestion: {question}")],
+            )
         )
-    )
 
-    response = get_gemini().models.generate_content(
-        model=settings.gemini_model,
-        contents=turns,
-        config=types.GenerateContentConfig(system_instruction=_SYSTEM, temperature=0.2),
-    )
-    return {"answer": response.text}
+        stream = get_gemini().models.generate_content_stream(
+            model=settings.gemini_model,
+            contents=turns,
+            config=types.GenerateContentConfig(system_instruction=_SYSTEM, temperature=0.2),
+        )
+        for chunk in stream:
+            if chunk.text:
+                yield chunk.text
+    except Exception as exc:
+        yield f"\n\n! chat failed: {exc}"
 
 
 def _retrieve(source: str, question: str) -> str:

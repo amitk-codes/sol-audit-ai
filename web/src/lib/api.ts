@@ -47,10 +47,29 @@ export function auditContract(source: string): Promise<AuditReport> {
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
-export function chatContract(
+export async function chatStream(
   source: string,
   question: string,
   history: ChatMessage[],
-): Promise<{ answer: string }> {
-  return post<{ answer: string }>("/chat", { source, question, history });
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${BASE}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source, question, history }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.detail ?? `Request failed (${res.status})`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    onChunk(decoder.decode(value, { stream: true }));
+  }
 }

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.services import chat as chat_service
@@ -21,11 +22,11 @@ class ChatRequest(BaseModel):
 def chat(request: ChatRequest):
     if not request.source.strip() or not request.question.strip():
         raise HTTPException(status_code=400, detail="source and question are required")
-    try:
-        return chat_service.answer(
+    return StreamingResponse(
+        chat_service.answer_stream(
             request.source,
             request.question,
             [message.model_dump() for message in request.history],
-        )
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"chat failed: {exc}") from exc
+        ),
+        media_type="text/plain; charset=utf-8",
+    )
