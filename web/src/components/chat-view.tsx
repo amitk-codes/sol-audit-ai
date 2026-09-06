@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { chatContract, type ChatMessage } from "@/lib/api";
+import { Markdown } from "@/components/markdown";
 import { Panel } from "@/components/ui/panel";
 
 export function ChatView({ source }: { source: string }) {
@@ -50,9 +51,9 @@ export function ChatView({ source }: { source: string }) {
               <span className="text-green">›</span> <span className="text-text">{message.content}</span>
             </p>
           ) : (
-            <p key={index} className="whitespace-pre-wrap text-dim">
-              {message.content}
-            </p>
+            <div key={index} className="text-dim">
+              <Markdown content={message.content} />
+            </div>
           ),
         )}
         {loading && (

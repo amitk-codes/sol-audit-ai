@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { auditContract, type AuditReport, type Finding } from "@/lib/api";
 import { Loading } from "@/components/loading";
+import { Markdown } from "@/components/markdown";
 import { Panel } from "@/components/ui/panel";
 import { cn } from "@/lib/utils";
 
@@ -94,12 +95,16 @@ function FindingCard({ finding }: { finding: Finding }) {
         {finding.category}
         {finding.location ? ` · ${finding.location}` : ""}
       </p>
-      <p className="mt-2 text-sm text-dim">{finding.description}</p>
+      <div className="mt-2 text-sm text-dim">
+        <Markdown content={finding.description} />
+      </div>
       {finding.recommendation && (
-        <p className="mt-2 text-sm">
-          <span className="text-green">→ fix:</span>{" "}
-          <span className="text-dim">{finding.recommendation}</span>
-        </p>
+        <div className="mt-2 text-sm">
+          <span className="text-green">→ fix:</span>
+          <div className="mt-1 text-dim">
+            <Markdown content={finding.recommendation} />
+          </div>
+        </div>
       )}
     </Panel>
   );
