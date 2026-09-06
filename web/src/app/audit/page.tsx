@@ -18,22 +18,28 @@ const TABS: Tab[] = ["code", "explain", "audit", "chat"];
 
 export default function AuditPage() {
   const [contract, setContract] = React.useState<Contract | null>(null);
-  const [tab, setTab] = React.useState<Tab>("audit");
+  const [tab, setTab] = React.useState<Tab>("code");
   const [activePath, setActivePath] = React.useState<string | null>(null);
   const [showFiles, setShowFiles] = React.useState(false);
   // tabs stay mounted once visited, so switching away and back doesn't re-run the analysis
-  const [visited, setVisited] = React.useState<Set<Tab>>(() => new Set<Tab>(["audit"]));
+  const [visited, setVisited] = React.useState<Set<Tab>>(() => new Set<Tab>(["code"]));
 
   function onLoaded(loaded: Contract) {
     setContract(loaded);
     setActivePath(loaded.files[0]?.path ?? null);
-    setTab("audit");
-    setVisited(new Set<Tab>(["audit"]));
+    setTab("code");
+    setVisited(new Set<Tab>(["code"]));
   }
 
   function selectTab(name: Tab) {
     setTab(name);
     setVisited((prev) => (prev.has(name) ? prev : new Set(prev).add(name)));
+  }
+
+  function pickFile(path: string) {
+    setActivePath(path);
+    setShowFiles(false);
+    selectTab("code");
   }
 
   if (!contract) {
@@ -52,14 +58,9 @@ export default function AuditPage() {
 
   const activeFile = contract.files.find((file) => file.path === activePath) ?? null;
 
-  function pickFile(path: string) {
-    setActivePath(path);
-    setShowFiles(false);
-  }
-
   return (
-    <div className="mx-auto max-w-7xl px-5 py-6">
-      <Panel className="mb-4 flex items-center justify-between p-3 text-sm">
+    <div className="mx-auto flex max-w-7xl flex-col px-5 py-4 lg:h-[calc(100dvh-3.5rem)]">
+      <Panel className="mb-3 flex shrink-0 items-center justify-between p-3 text-sm">
         <span className="text-dim">
           <span className="text-green">$</span> loaded {contract.files.length} file
           {contract.files.length === 1 ? "" : "s"} · {contract.total_chars.toLocaleString()} chars
@@ -73,21 +74,21 @@ export default function AuditPage() {
         onClick={() => setShowFiles((v) => !v)}
         className="mb-3 flex items-center gap-1 text-xs text-dim hover:text-green lg:hidden"
       >
-        <ChevronRight className={cn("h-3 w-3 transition-transform", showFiles && "rotate-90")} />
+        <ChevronRight className={cn("h-4 w-4 transition-transform", showFiles && "rotate-90")} />
         files ({contract.files.length})
       </button>
 
-      <div className="lg:flex lg:gap-4">
+      <div className="min-h-0 flex-1 lg:flex lg:gap-4">
         <aside
           className={cn("mb-4 lg:mb-0 lg:block lg:w-60 lg:shrink-0", showFiles ? "block" : "hidden")}
         >
-          <Panel className="max-h-[70vh] overflow-auto p-2">
+          <Panel className="max-h-[50vh] overflow-auto p-2 lg:h-full lg:max-h-none">
             <FileTree files={contract.files} activePath={activePath} onSelect={pickFile} />
           </Panel>
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <div className="mb-3 flex gap-2 text-xs">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="mb-3 flex shrink-0 gap-2 text-xs">
             {TABS.map((name) => (
               <button
                 key={name}
@@ -102,26 +103,28 @@ export default function AuditPage() {
             ))}
           </div>
 
-          {visited.has("code") && (
-            <div hidden={tab !== "code"}>
-              <CodeViewer file={activeFile} />
-            </div>
-          )}
-          {visited.has("explain") && (
-            <div hidden={tab !== "explain"}>
-              <ExplainView source={contract.combined} />
-            </div>
-          )}
-          {visited.has("audit") && (
-            <div hidden={tab !== "audit"}>
-              <AuditView source={contract.combined} />
-            </div>
-          )}
-          {visited.has("chat") && (
-            <div hidden={tab !== "chat"}>
-              <ChatView source={contract.combined} />
-            </div>
-          )}
+          <div className="min-h-0 flex-1">
+            {visited.has("code") && (
+              <div className="lg:h-full" hidden={tab !== "code"}>
+                <CodeViewer file={activeFile} />
+              </div>
+            )}
+            {visited.has("explain") && (
+              <div className="lg:h-full lg:overflow-auto" hidden={tab !== "explain"}>
+                <ExplainView source={contract.combined} />
+              </div>
+            )}
+            {visited.has("audit") && (
+              <div className="lg:h-full lg:overflow-auto" hidden={tab !== "audit"}>
+                <AuditView source={contract.combined} />
+              </div>
+            )}
+            {visited.has("chat") && (
+              <div className="h-[70vh] lg:h-full" hidden={tab !== "chat"}>
+                <ChatView source={contract.combined} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

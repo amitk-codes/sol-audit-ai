@@ -18,10 +18,6 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json();
 }
 
-export function loadContract(input: { source?: string; repo_url?: string }): Promise<Contract> {
-  return post<Contract>("/contract/load", input);
-}
-
 async function streamText(
   path: string,
   body: unknown,
@@ -47,66 +43,56 @@ async function streamText(
   }
 }
 
-// Consume a newline-delimited-JSON stream, parsing each complete line as it arrives.
-async function streamNdjson(
-  path: string,
-  body: unknown,
-  onObject: (obj: Record<string, unknown>) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  let buffer = "";
-  const flush = (chunk: string) => {
-    buffer += chunk;
-    let newline: number;
-    while ((newline = buffer.indexOf("\n")) >= 0) {
-      const line = buffer.slice(0, newline).trim();
-      buffer = buffer.slice(newline + 1);
-      if (line) {
-        try {
-          onObject(JSON.parse(line));
-        } catch {
-          // ignore partial or non-JSON lines
-        }
-      }
-    }
-  };
-  await streamText(path, body, flush, signal);
-  const last = buffer.trim();
-  if (last) {
-    try {
-      onObject(JSON.parse(last));
-    } catch {
-      // ignore
-    }
-  }
+export function loadContract(input: { source?: string; repo_url?: string }): Promise<Contract> {
+  return post<Contract>("/contract/load", input);
 }
 
-export type Instruction = { name: string; summary: string };
+// ---- explain (fan-out: an outline, then each instruction streams on its own) ----
 
-export function explainStream(
+export type ExplainOutline = { overview: string; instructions: string[] };
+
+export function explainOutline(source: string): Promise<ExplainOutline> {
+  return post<ExplainOutline>("/explain/outline", { source });
+}
+
+export function explainInstructionStream(
   source: string,
-  onObject: (obj: Record<string, unknown>) => void,
+  name: string,
+  onChunk: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  return streamNdjson("/explain", { source }, onObject, signal);
+  return streamText("/explain/instruction", { source, name }, onChunk, signal);
 }
 
-export type Finding = {
+// ---- audit (fan-out: an outline of finding skeletons, then each detail streams) ----
+
+export type FindingSkeleton = {
   title: string;
   severity: string;
   category: string;
   location: string;
-  description: string;
-  recommendation: string;
 };
+export type AuditOutline = { summary: string; findings: FindingSkeleton[] };
 
-export function auditStream(
+export function auditOutline(source: string): Promise<AuditOutline> {
+  return post<AuditOutline>("/audit/outline", { source });
+}
+
+export function auditFindingStream(
   source: string,
-  onObject: (obj: Record<string, unknown>) => void,
+  finding: FindingSkeleton,
+  onChunk: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  return streamNdjson("/audit", { source }, onObject, signal);
+  return streamText(
+    "/audit/finding",
+    { source, title: finding.title, category: finding.category, location: finding.location },
+    onChunk,
+    signal,
+  );
 }
+
+// ---- chat ----
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 

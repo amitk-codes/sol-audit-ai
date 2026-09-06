@@ -65,7 +65,7 @@ function Node({
           node.path === activePath ? "bg-panel-2 text-green" : "text-dim hover:text-text",
         )}
       >
-        <FileCode className="h-3.5 w-3.5 shrink-0 text-faint" />
+        <FileCode className="h-4 w-4 shrink-0 text-faint" />
         <span className="truncate">{node.name}</span>
       </button>
     );
@@ -78,8 +78,8 @@ function Node({
         style={pad}
         className="flex w-full items-center gap-1 py-1 pr-2 text-left text-xs text-dim hover:text-text"
       >
-        <ChevronRight className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-90")} />
-        <Folder className="h-3.5 w-3.5 shrink-0 text-faint" />
+        <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 transition-transform", open && "rotate-90")} />
+        <Folder className="h-4 w-4 shrink-0 text-faint" />
         <span className="truncate">{node.name}</span>
       </button>
       {open && sortedChildren(node).map((child) => (

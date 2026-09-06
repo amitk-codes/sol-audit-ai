@@ -10,10 +10,12 @@ export function ChatView({ source }: { source: string }) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const endRef = React.useRef<HTMLDivElement>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
+  // keep the newest message in view by scrolling the chat container itself (never the page)
   React.useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading]);
 
   function appendToLast(chunk: string) {
@@ -53,8 +55,8 @@ export function ChatView({ source }: { source: string }) {
   }
 
   return (
-    <Panel className="flex h-[520px] flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4 text-sm">
+    <Panel className="flex h-full flex-col">
+      <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-auto p-4 text-sm">
         {messages.length === 0 && (
           <p className="text-faint">
             // ask about the code — e.g. &quot;what happens if collateral drops below the
@@ -78,10 +80,9 @@ export function ChatView({ source }: { source: string }) {
             </div>
           ),
         )}
-        <div ref={endRef} />
       </div>
 
-      <form onSubmit={send} className="flex items-center gap-2 border-t border-border p-3">
+      <form onSubmit={send} className="flex shrink-0 items-center gap-2 border-t border-border p-3">
         <span className="text-green">›</span>
         <input
           value={input}

@@ -58,9 +58,9 @@ export function CodeViewer({ file }: { file: LoadedFile | null }) {
   const lines = file.content.split("\n");
 
   return (
-    <Panel className="overflow-hidden">
-      <div className="border-b border-border px-4 py-2 text-xs text-dim">{file.path}</div>
-      <div className="max-h-[600px] overflow-auto">
+    <Panel className="flex h-full max-h-[70vh] flex-col overflow-hidden lg:max-h-none">
+      <div className="shrink-0 border-b border-border px-4 py-2 text-xs text-dim">{file.path}</div>
+      <div className="min-h-0 flex-1 overflow-auto">
         <pre className="py-2 text-xs leading-relaxed text-dim">
           <code>
             {lines.map((line, index) => (
