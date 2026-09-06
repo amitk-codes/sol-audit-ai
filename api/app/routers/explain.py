@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.services import explainer
@@ -14,7 +15,6 @@ class ExplainRequest(BaseModel):
 def explain(request: ExplainRequest):
     if not request.source.strip():
         raise HTTPException(status_code=400, detail="source is empty")
-    try:
-        return explainer.explain(request.source)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"explain failed: {exc}") from exc
+    return StreamingResponse(
+        explainer.explain_stream(request.source), media_type="text/plain; charset=utf-8"
+    )

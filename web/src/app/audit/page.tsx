@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ChevronRight } from "lucide-react";
 
 import { type Contract } from "@/lib/api";
 import { AuditView } from "@/components/audit-view";
@@ -19,6 +20,7 @@ export default function AuditPage() {
   const [contract, setContract] = React.useState<Contract | null>(null);
   const [tab, setTab] = React.useState<Tab>("audit");
   const [activePath, setActivePath] = React.useState<string | null>(null);
+  const [showFiles, setShowFiles] = React.useState(false);
   // tabs stay mounted once visited, so switching away and back doesn't re-run the analysis
   const [visited, setVisited] = React.useState<Set<Tab>>(() => new Set<Tab>(["audit"]));
 
@@ -50,6 +52,11 @@ export default function AuditPage() {
 
   const activeFile = contract.files.find((file) => file.path === activePath) ?? null;
 
+  function pickFile(path: string) {
+    setActivePath(path);
+    setShowFiles(false);
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-5 py-6">
       <Panel className="mb-4 flex items-center justify-between p-3 text-sm">
@@ -62,10 +69,20 @@ export default function AuditPage() {
         </button>
       </Panel>
 
-      <div className="flex flex-col gap-4 lg:flex-row">
-        <aside className="lg:w-60 lg:shrink-0">
-          <Panel className="p-2">
-            <FileTree files={contract.files} activePath={activePath} onSelect={setActivePath} />
+      <button
+        onClick={() => setShowFiles((v) => !v)}
+        className="mb-3 flex items-center gap-1 text-xs text-dim hover:text-green lg:hidden"
+      >
+        <ChevronRight className={cn("h-3 w-3 transition-transform", showFiles && "rotate-90")} />
+        files ({contract.files.length})
+      </button>
+
+      <div className="lg:flex lg:gap-4">
+        <aside
+          className={cn("mb-4 lg:mb-0 lg:block lg:w-60 lg:shrink-0", showFiles ? "block" : "hidden")}
+        >
+          <Panel className="max-h-[70vh] overflow-auto p-2">
+            <FileTree files={contract.files} activePath={activePath} onSelect={pickFile} />
           </Panel>
         </aside>
 

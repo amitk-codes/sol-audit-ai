@@ -9,22 +9,22 @@ MAX_SOURCE_CHARS = 200_000
 
 _SYSTEM = (
     "You explain Solana / Anchor programs to developers. Given the program's Rust source, "
-    "produce a concise plain-English explanation. "
-    'Return JSON: {"overview": string, "instructions": [{"name": string, "summary": string}]}. '
-    "'overview' is 2-3 sentences on what the program does overall. "
-    "'instructions' lists each instruction / handler with a one-to-two sentence summary."
+    'output newline-delimited JSON (NDJSON): first a single line {"overview": string} '
+    "(2-3 sentences on what the program does overall), then one line per instruction / handler "
+    'as {"name": string, "summary": string}. '
+    "Output ONLY NDJSON — one JSON object per line, no markdown, no code fences."
 )
 
 
-def explain(source: str) -> dict:
-    client = get_gemini()
-    response = client.models.generate_content(
-        model=settings.gemini_model,
-        contents=source[:MAX_SOURCE_CHARS],
-        config=types.GenerateContentConfig(
-            system_instruction=_SYSTEM,
-            response_mime_type="application/json",
-            temperature=0.2,
-        ),
-    )
-    return json.loads(response.text)
+def explain_stream(source: str):
+    try:
+        stream = get_gemini().models.generate_content_stream(
+            model=settings.gemini_model,
+            contents=source[:MAX_SOURCE_CHARS],
+            config=types.GenerateContentConfig(system_instruction=_SYSTEM, temperature=0.2),
+        )
+        for chunk in stream:
+            if chunk.text:
+                yield chunk.text
+    except Exception as exc:
+        yield "\n" + json.dumps({"error": f"explain failed: {exc}"}) + "\n"

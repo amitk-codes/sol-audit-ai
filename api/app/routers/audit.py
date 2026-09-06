@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.services import auditor
@@ -14,7 +15,6 @@ class AuditRequest(BaseModel):
 def audit(request: AuditRequest):
     if not request.source.strip():
         raise HTTPException(status_code=400, detail="source is empty")
-    try:
-        return auditor.audit(request.source)
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"audit failed: {exc}") from exc
+    return StreamingResponse(
+        auditor.audit_stream(request.source), media_type="text/plain; charset=utf-8"
+    )

@@ -24,26 +24,27 @@ Check specifically for these Solana / Anchor vulnerability classes:
 """
 
 _SYSTEM = (
-    "You are a Solana smart-contract security reviewer performing an AI-assisted first-pass review "
-    "(not a certified audit). Review the given Rust / Anchor program source.\n\n"
+    "You are a Solana smart-contract security reviewer performing an AI-assisted first-pass review. "
+    "Review the given Rust / Anchor program source.\n\n"
     + _CHECKLIST
-    + '\nReturn JSON: {"summary": string, "findings": [{"title": string, '
-    '"severity": "critical"|"high"|"medium"|"low"|"info", "category": string, '
-    '"location": string, "description": string, "recommendation": string}]}. '
-    "Only report issues you can justify from the code — do not invent a finding where a check is "
-    "actually satisfied. 'location' should cite the file/function. Order findings by severity."
+    + '\nOutput newline-delimited JSON (NDJSON): first a single line {"summary": string}, then one '
+    'line per finding as {"title": string, "severity": "critical"|"high"|"medium"|"low"|"info", '
+    '"category": string, "location": string, "description": string, "recommendation": string}, '
+    "ordered by severity. Only report issues you can justify from the code — do not invent a finding "
+    "where a check is actually satisfied. "
+    "Output ONLY NDJSON — one JSON object per line, no markdown, no code fences."
 )
 
 
-def audit(source: str) -> dict:
-    client = get_gemini()
-    response = client.models.generate_content(
-        model=settings.gemini_model,
-        contents=source[:MAX_SOURCE_CHARS],
-        config=types.GenerateContentConfig(
-            system_instruction=_SYSTEM,
-            response_mime_type="application/json",
-            temperature=0.2,
-        ),
-    )
-    return json.loads(response.text)
+def audit_stream(source: str):
+    try:
+        stream = get_gemini().models.generate_content_stream(
+            model=settings.gemini_model,
+            contents=source[:MAX_SOURCE_CHARS],
+            config=types.GenerateContentConfig(system_instruction=_SYSTEM, temperature=0.2),
+        )
+        for chunk in stream:
+            if chunk.text:
+                yield chunk.text
+    except Exception as exc:
+        yield "\n" + json.dumps({"error": f"audit failed: {exc}"}) + "\n"

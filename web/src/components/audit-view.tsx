@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AlertTriangle, Download, Info, ShieldAlert } from "lucide-react";
 
-import { auditContract, type AuditReport, type Finding } from "@/lib/api";
+import { auditStream, type Finding } from "@/lib/api";
 import { Loading } from "@/components/loading";
 import { Markdown } from "@/components/markdown";
 import { Panel } from "@/components/ui/panel";
@@ -45,8 +45,10 @@ function SeverityIcon({ severity, className }: { severity: string; className?: s
   return <Info className={className} />;
 }
 
-function exportReport(report: AuditReport) {
-  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+function exportReport(summary: string, findings: Finding[]) {
+  const blob = new Blob([JSON.stringify({ summary, findings }, null, 2)], {
+    type: "application/json",
+  });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -56,28 +58,37 @@ function exportReport(report: AuditReport) {
 }
 
 export function AuditView({ source }: { source: string }) {
-  const [data, setData] = React.useState<AuditReport | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const [summary, setSummary] = React.useState("");
+  const [findings, setFindings] = React.useState<Finding[]>([]);
+  const [streaming, setStreaming] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    setSummary("");
+    setFindings([]);
+    setStreaming(true);
     setError(null);
-    auditContract(source)
-      .then((result) => !cancelled && setData(result))
+
+    auditStream(source, (obj) => {
+      if (cancelled) return;
+      if (typeof obj.error === "string") setError(obj.error);
+      else if (typeof obj.summary === "string") setSummary(obj.summary);
+      else if (typeof obj.title === "string") setFindings((prev) => [...prev, obj as Finding]);
+    })
       .catch((err) => !cancelled && setError(err instanceof Error ? err.message : "Failed"))
-      .finally(() => !cancelled && setLoading(false));
+      .finally(() => !cancelled && setStreaming(false));
+
     return () => {
       cancelled = true;
     };
   }, [source]);
 
-  if (loading) return <Loading label="auditing…" />;
-  if (error) return <Panel className="p-5 text-sm text-red">! {error}</Panel>;
-  if (!data) return null;
+  const empty = !summary && findings.length === 0;
+  if (streaming && empty) return <Loading label="auditing…" />;
+  if (error && empty) return <Panel className="p-5 text-sm text-red">! {error}</Panel>;
 
-  const findings = [...data.findings].sort(
+  const sorted = [...findings].sort(
     (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity),
   );
 
@@ -86,20 +97,28 @@ export function AuditView({ source }: { source: string }) {
       <Panel className="p-5">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-xs text-faint">// summary</p>
-          <button
-            onClick={() => exportReport(data)}
-            className="flex items-center gap-1.5 text-xs text-dim hover:text-green"
-          >
-            <Download className="h-3.5 w-3.5" /> export json
-          </button>
+          {!streaming && findings.length > 0 && (
+            <button
+              onClick={() => exportReport(summary, sorted)}
+              className="flex items-center gap-1.5 text-xs text-dim hover:text-green"
+            >
+              <Download className="h-3.5 w-3.5" /> export json
+            </button>
+          )}
         </div>
-        <p className="text-sm leading-relaxed">{data.summary}</p>
+        {summary ? (
+          <p className="text-sm leading-relaxed">{summary}</p>
+        ) : (
+          <p className="text-sm text-faint">
+            analysing<span className="animate-pulse">▍</span>
+          </p>
+        )}
 
-        {findings.length > 0 && (
+        {sorted.length > 0 && (
           <>
             <div className="mt-4 flex h-1.5 overflow-hidden">
               {SEVERITY_ORDER.map((severity) => {
-                const count = findings.filter((f) => f.severity === severity).length;
+                const count = sorted.filter((f) => f.severity === severity).length;
                 if (!count) return null;
                 return (
                   <div key={severity} style={{ flex: count }} className={severityBar(severity)} />
@@ -108,7 +127,7 @@ export function AuditView({ source }: { source: string }) {
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {SEVERITY_ORDER.map((severity) => {
-                const count = findings.filter((f) => f.severity === severity).length;
+                const count = sorted.filter((f) => f.severity === severity).length;
                 if (!count) return null;
                 return (
                   <span
@@ -125,11 +144,19 @@ export function AuditView({ source }: { source: string }) {
         )}
       </Panel>
 
-      {findings.length === 0 ? (
+      {sorted.map((finding, index) => (
+        <FindingCard key={index} finding={finding} />
+      ))}
+
+      {!streaming && findings.length === 0 && (
         <Panel className="p-5 text-sm text-green">✓ no findings from the checklist</Panel>
-      ) : (
-        findings.map((finding, index) => <FindingCard key={index} finding={finding} />)
       )}
+      {streaming && !empty && (
+        <p className="text-xs text-faint">
+          streaming<span className="animate-pulse">▍</span>
+        </p>
+      )}
+      {error && !empty && <p className="text-xs text-red">! {error}</p>}
     </div>
   );
 }

@@ -22,13 +22,73 @@ export function loadContract(input: { source?: string; repo_url?: string }): Pro
   return post<Contract>("/contract/load", input);
 }
 
-export type Explanation = {
-  overview: string;
-  instructions: { name: string; summary: string }[];
-};
+async function streamText(
+  path: string,
+  body: unknown,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.detail ?? `Request failed (${res.status})`);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    onChunk(decoder.decode(value, { stream: true }));
+  }
+}
 
-export function explainContract(source: string): Promise<Explanation> {
-  return post<Explanation>("/explain", { source });
+// Consume a newline-delimited-JSON stream, parsing each complete line as it arrives.
+async function streamNdjson(
+  path: string,
+  body: unknown,
+  onObject: (obj: Record<string, unknown>) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  let buffer = "";
+  const flush = (chunk: string) => {
+    buffer += chunk;
+    let newline: number;
+    while ((newline = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, newline).trim();
+      buffer = buffer.slice(newline + 1);
+      if (line) {
+        try {
+          onObject(JSON.parse(line));
+        } catch {
+          // ignore partial or non-JSON lines
+        }
+      }
+    }
+  };
+  await streamText(path, body, flush, signal);
+  const last = buffer.trim();
+  if (last) {
+    try {
+      onObject(JSON.parse(last));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+export type Instruction = { name: string; summary: string };
+
+export function explainStream(
+  source: string,
+  onObject: (obj: Record<string, unknown>) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamNdjson("/explain", { source }, onObject, signal);
 }
 
 export type Finding = {
@@ -39,37 +99,23 @@ export type Finding = {
   description: string;
   recommendation: string;
 };
-export type AuditReport = { summary: string; findings: Finding[] };
 
-export function auditContract(source: string): Promise<AuditReport> {
-  return post<AuditReport>("/audit", { source });
+export function auditStream(
+  source: string,
+  onObject: (obj: Record<string, unknown>) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamNdjson("/audit", { source }, onObject, signal);
 }
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
-export async function chatStream(
+export function chatStream(
   source: string,
   question: string,
   history: ChatMessage[],
   onChunk: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const res = await fetch(`${BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ source, question, history }),
-    signal,
-  });
-  if (!res.ok || !res.body) {
-    const data = await res.json().catch(() => null);
-    throw new Error(data?.detail ?? `Request failed (${res.status})`);
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    onChunk(decoder.decode(value, { stream: true }));
-  }
+  return streamText("/chat", { source, question, history }, onChunk, signal);
 }
