@@ -9,7 +9,7 @@ source or point it at a public GitHub repo, and get:
 - a **severity-ranked vulnerability report** grounded in a Solana-specific checklist,
 - a chat to ask questions about the code.
 
-![sol-audit-ai — the audit workspace](docs/demo.gif)
+![sol-audit-ai — the audit workspace](docs/demo.png)
 
 ## Tech
 
