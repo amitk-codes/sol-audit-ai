@@ -1,5 +1,7 @@
 # sol-audit-ai
 
+**Live demo → [sol-audit-ai.vercel.app](https://sol-audit-ai.vercel.app)**
+
 An AI-assisted first-pass security review for Solana / Anchor programs. Paste a program's Rust
 source or point it at a public GitHub repo, and get:
 
