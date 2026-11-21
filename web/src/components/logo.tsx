@@ -7,7 +7,6 @@ export function Logo() {
       </span>
       <span className="leading-tight">
         <span className="block text-sm font-bold text-text">sol-audit-ai</span>
-        <span className="block text-[10px] text-faint">by Amit Kumar</span>
       </span>
     </span>
   );

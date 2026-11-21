@@ -78,12 +78,6 @@ export default function Home() {
           <Link href="/audit" className={buttonVariants()}>
             [▸] run audit
           </Link>
-          <a
-            href="https://github.com/amitk-codes/sol-audit-ai"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            view source
-          </a>
         </div>
 
       </Panel>

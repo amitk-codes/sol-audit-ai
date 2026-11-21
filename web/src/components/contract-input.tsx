@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { loadContract, LENDITY_FI_REPO, type Contract } from "@/lib/api";
+import { loadContract, EXAMPLE_REPO, type Contract } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import { cn } from "@/lib/utils";
@@ -28,8 +28,8 @@ export function ContractInput({ onLoaded }: { onLoaded: (contract: Contract) => 
 
   function loadExample() {
     setMode("github");
-    setRepoUrl(LENDITY_FI_REPO);
-    load({ repo_url: LENDITY_FI_REPO });
+    setRepoUrl(EXAMPLE_REPO);
+    load({ repo_url: EXAMPLE_REPO });
   }
 
   return (
@@ -70,7 +70,7 @@ export function ContractInput({ onLoaded }: { onLoaded: (contract: Contract) => 
           {loading ? "loading…" : "[▸] load"}
         </Button>
         <button onClick={loadExample} disabled={loading} className="text-xs text-dim hover:text-green">
-          › try example (lendity-fi)
+          › try example (smart-vestiny)
         </button>
       </div>
     </Panel>

@@ -3,7 +3,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export type LoadedFile = { path: string; content: string };
 export type Contract = { files: LoadedFile[]; combined: string; total_chars: number };
 
-export const LENDITY_FI_REPO = "https://github.com/amitk-codes/lendity-fi";
+export const EXAMPLE_REPO = "https://github.com/nerdeploy/smart-vestiny";
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
